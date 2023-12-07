@@ -1,0 +1,17 @@
+function doGet(request){
+ // Change Spread Sheet url
+ var custid = request.parameter.custid// ดึงรหัสลูกค้าจากพารามิเตอร์
+ deleteorder(custid)// เรียกใช้ฟังก์ชันเพื่อลบรายการสั่งซื้อ
+ result = {}// สร้าง JSON ผลลัพธ์
+ result['result']= 'deleted'
+ result = JSON.stringify(result);
+ return ContentService.createTextOutput(result).setMimeType(ContentService.MimeType.JSON); // สร้าง TextOutput สำหรับการตอบกลับ
+}
+
+
+function deleteorder(custid){// ฟังก์ชันเพื่อลบรายการสั่งซื้อของลูกค้า
+    var sheeturl = 'https://docs.google.com/spreadsheets/d/1qa0y_65KWaQ_As40hsLQ8Y-b8malI9j0r5rJklGQXVQ/edit?usp=sharing'
+    var sheetname = 'ออเดอร์'
+    var psheet = gspandas.gsdataframe(sheeturl,sheetname)// สร้าง DataFrame จาก Google Spreadsheet
+    psheet.deleterows('รหัสลูกค้า',custid)// ลบรายการสั่งซื้อโดยใช้เงื่อนไข 'รหัสลูกค้า' เท่ากับ custid
+}

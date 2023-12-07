@@ -1,0 +1,52 @@
+function doGet(request){
+ // ดึงค่าพารามิเตอร์จาก request
+ var custid = request.parameter.custid
+ var linenotitoken = request.parameter.linenotitoken
+ // การล็อกค่าพารามิเตอร์ (ตัวเลือก)
+ //Logger.log(pname)
+ sendLineNotify(custid,token=linenotitoken)/// เรียกใช้ฟังก์ชัน sendLineNotify ด้วย custid และ linenotitoken ที่ได้รับ
+ result = {'sendnoti':'succeed'}// สร้าง JSON response แสดงความสำเร็จ
+ result = JSON.stringify(result);// แปลงผลลัพธ์เป็น string ในรูปแบบ JSON
+ return ContentService.createTextOutput(result).setMimeType(ContentService.MimeType.JSON); //ส่งjson 
+}
+
+function getcustdata(custid){
+  var sheeturl = 'https://docs.google.com/spreadsheets/d/1qa0y_65KWaQ_As40hsLQ8Y-b8malI9j0r5rJklGQXVQ/edit?usp=sharing'// กำหนด URL และชื่อของ Google Sheets
+  var sheetname = 'ออเดอร์'
+  var psheet = gspandas.gsdataframe(sheeturl,sheetname)// สร้าง DataFrame จาก Google Sheets
+  var pinfo = psheet.getrowdict('รหัสลูกค้า',custid)// ดึงข้อมูลลูกค้าจากแถวที่มี 'รหัสลูกค้า' เท่ากับ custid
+  var pinfol = psheet.getrows('รหัสลูกค้า',custid)// ดึงข้อมูลทั้งหมดที่มี 'รหัสลูกค้า' เท่ากับ custid
+  Logger.log(pinfol)  // Logging ข้อมูลทั้งหมดที่พบ
+  
+  psheet.deleterows('รหัสลูกค้า',custid)// ลบแถวทั้งหมดที่มี 'รหัสลูกค้า' เท่ากับ custid
+
+  orderedsheet = 'ยอดออเดอร์'// กำหนดชื่อของชีทที่เก็บยอดออเดอร์
+  var opsheet = gspandas.gsdataframe(sheeturl,orderedsheet) // สร้าง DataFrame จาก Google Sheets
+
+  Logger.log(pinfo)// Logging ข้อมูลลูกค้าที่ได้จากการดึง
+
+  itm = '\ncustomer_name: '+ custid.substring(1, 6) + '\n\n'// กำหนดข้อมูลเพื่อสร้างข้อความผลลัพธ์
+  for (i in pinfo){// วนลูปผ่านทุกรายการลูกค้าที่ได้จากการดึง
+    opsheet.sheet.appendRow(pinfol[i])// เพิ่มข้อมูลลูกค้าลงในชีท 'ยอดออเดอร์'
+    itm = itm + pinfo[i]['ชื่อสินค้า']+'\n'// เพิ่มข้อมูลสินค้าลงในข้อความผลลัพธ์
+
+  }
+
+  Logger.log(itm)// Logging ข้อมูลผลลัพธ์
+
+  return itm// ส่งข้อความผลลัพธ์กลับ
+}
+
+function sendLineNotify(custid,token='qm2omNKK8ImZ31XphyQcDvHyaackSDE1ecFbTSjR3XY') {
+    var message = getcustdata(custid)// เรียกใช้ฟังก์ชัน getcustdata เพื่อดึงข้อมูลลูกค้า
+    var token = [token]; //ใส่ access token ที่ใช้งาน
+    var options = {// กำหนดตัวเลือกสำหรับการส่ง HTTP Request ไปยัง Line Notify
+        "method": "post",
+        "payload": "message=" + message,
+        "headers": {
+            "Authorization": "Bearer " + token
+        }
+    };
+
+    UrlFetchApp.fetch("https://notify-api.line.me/api/notify", options);// ส่ง HTTP Request ไปยัง URL ของ Line Notify
+}

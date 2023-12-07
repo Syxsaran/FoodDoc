@@ -1,0 +1,30 @@
+function doGet(request){// ดึงข้อมูลจากพารามิเตอร์
+ // Change Spread Sheet url
+ var custid = request.parameter.custid
+ var orderid = '111'
+ var pname = request.parameter.pname
+ var quantity = request.parameter.quantity
+ // เรียกใช้ฟังก์ชันเพื่อเพิ่มรายการสั่งซื้อ
+ var result = addorder(orderid,custid,pname,quantity)
+ //Logger.log(jo)
+ result = {} // สร้าง JSON ผลลัพธ์
+ result['result']=200
+ result = JSON.stringify(result);
+ return ContentService.createTextOutput(result).setMimeType(ContentService.MimeType.JSON); // สร้าง TextOutput สำหรับการตอบกลับ
+}
+
+function addorder(oid='1',custid='333',pname='คะน้าหมูกรอบ',quantity=1) {// ฟังก์ชันเพื่อเพิ่มรายการสั่งซื้อ
+  var sheeturl = 'https://docs.google.com/spreadsheets/d/1qa0y_65KWaQ_As40hsLQ8Y-b8malI9j0r5rJklGQXVQ/edit?usp=sharing'// URL ของ Google Spreadsheet
+  var sheetname = 'สินค้า'// ชื่อและชื่อของแผ่นข้อมูล
+  var psheet = gspandas.gsdataframe(sheeturl,sheetname)// สร้าง DataFrame จาก Google Spreadsheet
+  var currentval = parseInt(psheet.getvalue('ชื่อสินค้า',pname,'ปริมาณ'),10)// อัปเดตปริมาณสินค้า
+  psheet.updatevalue('ชื่อสินค้า',pname,'ปริมาณ',currentval-quantity)
+  var pinfo = psheet.getrowdict('ชื่อสินค้า',pname)[0] // ดึงข้อมูลของสินค้าที่อัปเดต
+  var trx = [Date(Date.now()).toString(),oid,custid,pinfo['รหัสสินค้า'],pinfo['ชื่อสินค้า'],pinfo['ราคา'],quantity]
+  //สร้างรายการที่ต้องการเพิ่มในรายการสั่งซื้อ
+
+
+  var sheetname = 'ออเดอร์'// ชื่อและชื่อของแผ่นข้อมูลสำหรับรายการสั่งซื้อ
+  var osheet = gspandas.gsdataframe(sheeturl,sheetname)// สร้าง DataFrame จาก Google Spreadsheet
+  osheet.sheet.appendRow(trx) // เพิ่มรายการสั่งซื้อในแผ่นข้อมูล
+}

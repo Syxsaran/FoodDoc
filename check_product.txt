@@ -1,0 +1,167 @@
+function exploreclass(oid='1',custid='333',pname='คะน้าหมูกรอบ',quantity=1) {
+  var sheeturl = 'https://docs.google.com/spreadsheets/d/1qa0y_65KWaQ_As40hsLQ8Y-b8malI9j0r5rJklGQXVQ/edit?usp=sharing'// กำหนด URL และชื่อของ Google Sheets
+  var sheetname = 'สินค้า'// กำหนดชื่อของชีทสินค้า
+  var psheet = gspandas.gsdataframe(sheeturl,sheetname)// สร้าง DataFrame จาก Google Sheets
+  var currentval = parseInt(psheet.getvalue('ชื่อสินค้า',pname,'ปริมาณ'),10)// ดึงค่าปริมาณปัจจุบันของสินค้า
+  psheet.updatevalue('ชื่อสินค้า',pname,'ปริมาณ',currentval-quantity)// อัพเดตค่าปริมาณใน Google Sheets
+  var pinfo = psheet.getrowdict('ชื่อสินค้า',pname)[0]// ดึงข้อมูลของสินค้า
+  var trx = [Date(Date.now()).toString(),oid,custid,pinfo['รหัสสินค้า'],pinfo['ชื่อสินค้า'],pinfo['ราคา'],quantity]// สร้างข้อมูลการทำธุรกรรม
+
+  var sheetname = 'ออเดอร์'// กำหนดชื่อของชีทออเดอร์
+  var osheet = gspandas.gsdataframe(sheeturl,sheetname)// สร้าง DataFrame จาก Google Sheets
+  osheet.sheet.appendRow(trx)// เพิ่มข้อมูลการทำธุรกรรมลงในชีทออเดอร์
+}
+
+function getcustdata(custid='Uc217a79841540c1b0afe06312a885849'){
+  var sheeturl = 'https://docs.google.com/spreadsheets/d/1qa0y_65KWaQ_As40hsLQ8Y-b8malI9j0r5rJklGQXVQ/edit?usp=sharing'// กำหนด URL และชื่อของ Google Sheets
+  var sheetname = 'ออเดอร์'// กำหนดชื่อของชีทออเดอร์
+  var psheet = gspandas.gsdataframe(sheeturl,sheetname)// สร้าง DataFrame จาก Google Sheets
+  var pinfo = psheet.getrowdict('รหัสลูกค้า',custid)// ดึงข้อมูลลูกค้าจากรหัสลูกค้าที่กำหนด
+  Logger.log(pinfo)// Logging ข้อมูลลูกค้าที่ได้
+  return pinfo// ส่งข้อมูลลูกค้ากลับ
+}
+
+
+function getproductlistflex(custid='Uc217a79841540c1b0afe06312a885849'){
+  var datList = getcustdata(custid)// ดึงข้อมูลลูกค้าจากรหัสลูกค้าที่กำหนด
+ let wlist = []// สร้างตัวแปรสำหรับเก็บรายการสินค้าใน Flex Message
+let totalPrice = 0 // กำหนดค่าเริ่มต้นของราคารวมเป็น 0
+for (i in datList){// วนลูปเพื่อสร้าง Flex Message สำหรับแต่ละรายการสินค้า
+  fitem = datList[i]['ชื่อสินค้า']
+  fprice = datList[i]['ราคา']
+  totalPrice += fprice // เพิ่มราคาของรายการสินค้าลงในราคารวม
+  let oneitem = {
+    "type": "box",
+    "layout": "horizontal",
+    "contents": [
+      {
+        "type": "text",
+        "text": fitem,
+        "size": "sm",
+        "color": "#555555",
+        "flex": 0
+      },
+      {
+        "type": "text",
+        "text": fprice + " บาท",
+       
+        "size": "sm",
+        "color": "#111111",
+        "align": "end"
+      }
+    ]
+  }
+  wlist.push(oneitem)
+}
+// เพิ่มราคารวมลงในรายการ
+let totalItem = {
+  "type": "box",
+  "layout": "horizontal",
+  "contents": [
+    {
+      "type": "text",
+      "text": "ราคารวม",
+      "size": "sm",
+      "color": "#555555",
+      "flex": 0
+    },
+    {
+      "type": "text",
+      "text": totalPrice + " บาท",
+      "size": "sm",
+      "color": "#111111",
+      "align": "end"
+    }
+  ]
+}
+wlist.push(totalItem)
+  //sep = 
+  //wlist.push()
+    
+// สร้าง Flex Message สำหรับรายการสินค้า
+  var itemflex = {
+        "type": "box",
+        "layout": "vertical",
+        "margin": "xxl",
+        "spacing": "sm",
+        "contents": wlist
+      }
+  
+  Logger.log(itemflex) // Logging ข้อมูล Flex Message
+  return itemflex// ส่ง Flex Message กลับ
+}
+
+
+
+
+
+function getproductflex(custid='Uc217a79841540c1b0afe06312a885849',altText='This is a Flex Message'){
+  itemflex = getproductlistflex(custid)// ดึง Flex Message ของรายการสินค้า
+
+
+  var flextemplate = {// กำหนดรูปแบบของ Flex Message
+  "type": "bubble",
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "text",
+        "text": "รายการที่เลือก",
+        "weight": "bold",
+        "color": "#1DB446",
+        "size": "sm"
+      },
+      {
+        "type": "separator",
+        "margin": "xxl"
+      },
+      itemflex
+    ]
+  },
+  "footer": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "button",
+        "action": {
+          "type": "message",
+          "label": "ส่งออเดอร์",
+          "text": "ส่งออเดอร์"
+        },
+        "style": "primary"
+      }
+    ]
+  },
+  "styles": {
+    "footer": {
+      "separator": false
+    }
+  }
+}
+// กำหนดรูปแบบของ Line Response
+  var lineres = {}
+  lineres['type'] = 'flex'
+  lineres['altText'] = altText
+  lineres['contents'] = flextemplate
+// กำหนดรูปแบบของ Line Response Object
+  var lr = {
+  "line_payload":[
+      lineres
+    ],
+  "response_type": "object"
+  }
+  return lr// ส่ง Line Response Object กลับ
+}
+
+function doGet(request){// ดึงรหัสลูกค้าจากพารามิเตอร์
+ // Change Spread Sheet url
+ var custid = request.parameter.custid// ดึงรหัสลูกค้าจากพารามิเตอร์
+ //Logger.log(pname)
+ var result = getproductflex(custid)// สร้าง Flex Message ของรายการสินค้าสำหรับลูกค้า
+ //Logger.log(jo)
+ result = JSON.stringify(result);// แปลงข้อมูลเป็น JSON
+ return ContentService.createTextOutput(result).setMimeType(ContentService.MimeType.JSON);  // สร้าง TextOutput สำหรับการตอบกลับ
+}
+
